@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "Miles.h"
 #include <winreg.h>
 #include <iostream>
@@ -10,6 +10,36 @@
 namespace fs = std::filesystem;
 
 extern args::ValueFlag<std::string> exportLanguage;
+
+#define LANGUAGE_COUNT 11
+
+std::string OriginLanguage[] = {
+	"english",
+	"french",
+	"german",
+	"italian",
+	"japanese",
+	"mspanish",
+	"polish",
+	"portuguese",
+	"russian",
+	"spanish",
+	"tchinese"
+};
+
+std::string LanguageTranslate[] = {
+	"美式英语",
+	"法语",
+	"德语",
+	"意大利语",
+	"日语",
+	"墨西哥西班牙语",
+	"波兰语",
+	"巴西葡萄牙语",
+	"俄语",
+	"西班牙语",
+	"中文"
+};
 
 void SetupBusVolumes(Driver driver)
 {
@@ -86,6 +116,22 @@ bool GetLocalizedLanguage(std::vector<std::string> *out, std::string dir_path)
 		return false;
 }
 
+int GetIndexInTheArray(std::string *Array,std::string *str) {
+	for (int i = 0; i < LANGUAGE_COUNT; i++) {
+		if (Array[i] == *str) {
+			return i;
+		}
+	}
+}
+
+std::string OriginToTranslate(std::string *origin) {
+	return LanguageTranslate[GetIndexInTheArray(OriginLanguage, origin)];
+}
+
+std::string TranslateToOrigin(std::string *origin) {
+	return OriginLanguage[GetIndexInTheArray(LanguageTranslate, origin)];
+}
+
 unsigned int GetPatchCount(std::string dir_path)
 {
 	unsigned int count = 0;
@@ -114,10 +160,10 @@ bool IsPatched(std::string dir_path)
 void GetChosenLanguage(std::string* language,std::vector<std::string>* found_language) {
 	std::string text;
 	for (int i = 0; i < (*found_language).size(); i++) {
-		text += (*found_language)[i] + " ";
+		text += OriginToTranslate(&(*found_language)[i]) + " ";
 	}
-	std::cout << "Found those Language: " + text << std::endl;
-	std::cout << "Choose Language which you want to export(use the \"TAB\" key in the keyborad to switch): " + (*found_language)[0];
+	std::cout << "找到这些语言: " + text << std::endl;
+	std::cout << "请选择你希望导出的语言(按下键盘上的 \"TAB\" 键来进行切换): " + OriginToTranslate(&(*found_language)[0]);
 	int key = _getch();
 	int index = 0;
 	while (true)
@@ -128,7 +174,7 @@ void GetChosenLanguage(std::string* language,std::vector<std::string>* found_lan
 			break;
 		}
 		else if (key == 9) {
-			for (int i = 0; i < (*found_language)[index].length(); i++) {
+			for (int i = 0; i < OriginToTranslate(&(*found_language)[index]).length(); i++) {
 				std::cout << "\b";
 				std::cout << " ";
 				std::cout << "\b";
@@ -139,7 +185,7 @@ void GetChosenLanguage(std::string* language,std::vector<std::string>* found_lan
 			else {
 				index = 0;
 			}
-			std::cout << (*found_language)[index];
+			std::cout << OriginToTranslate(&(*found_language)[index]);
 			key = _getch();
 		}
 		else
@@ -160,7 +206,7 @@ Project SetupMiles(void (WINAPI* callback)(int, char*), std::string dir_path, bo
 	__int64 startup = MilesStartup(callback);
 	if (!silent)
 	{
-		std::cout << "Start up: " << startup << "\r\n";
+		std::cout << "启动状态: " << startup << "\r\n";
 	}
 
 	auto output = MilesOutputDirectSound();
@@ -183,8 +229,8 @@ Project SetupMiles(void (WINAPI* callback)(int, char*), std::string dir_path, bo
 	GetMatchingFile(std::regex(".mprj$"), &mprj, dir_path);
 	GetLocalizedLanguage(&found_language, dir_path);
 	if (found_language.empty()) {
-		std::cout << "Can't found language file!" << std::endl;
-		std::cout << "Press any key to exit!" << std::endl;
+		std::cout << "未找到语言文件!" << std::endl;
+		std::cout << "按任意键退出!" << std::endl;
 		int temp = _getch();
 		exit(0);
 	}
@@ -196,6 +242,9 @@ Project SetupMiles(void (WINAPI* callback)(int, char*), std::string dir_path, bo
 	}
 	else {
 		std::string mlanguage = args::get(exportLanguage).c_str();
+		if ( !(mlanguage[0] >= 'a' && mlanguage[0] <= 'z') && !(mlanguage[0] >= 'A' && mlanguage[0] <= 'Z')) {
+			mlanguage = TranslateToOrigin(&mlanguage);
+		}
 		auto in = std::find(found_language.begin(), found_language.end(), mlanguage);
 		if (in == found_language.end()) {
 			language = found_language[0];
@@ -204,7 +253,6 @@ Project SetupMiles(void (WINAPI* callback)(int, char*), std::string dir_path, bo
 			language = mlanguage;
 		}
 	}
-
 
 	std::string project_name = mprj;
 
@@ -230,7 +278,7 @@ Project SetupMiles(void (WINAPI* callback)(int, char*), std::string dir_path, bo
 	status = MilesProjectGetStatus(project.driver);
 	if (!silent) 
 	{ 
-		std::cout << "status: " << MilesProjectStatusToString(status) << std::endl; 
+		std::cout << "项目状态: " << MilesProjectStatusToString(status) << std::endl; 
 	}
 
 	std::string mbnk;
@@ -266,7 +314,7 @@ Project SetupMiles(void (WINAPI* callback)(int, char*), std::string dir_path, bo
 	}
 	if (!silent) 
 	{ 
-		std::cout << "bank_status: " << MilesBankStatusToString(bank_status) << std::endl;
+		std::cout << "数据库状态: " << MilesBankStatusToString(bank_status) << std::endl;
 	}
 
 	return project;

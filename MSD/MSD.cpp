@@ -1,4 +1,4 @@
-// MSD.cpp : Defines the entry point for the console application.
+﻿// MSD.cpp : Defines the entry point for the console application.
 //
 
 #include "stdafx.h"
@@ -16,18 +16,18 @@
 #include <filesystem>
 #include "args.hxx"	
 
-args::ArgumentParser parser("Miles 10 Sound Dumper by Lyxica v1.0-beta5\nFixed By zxcPandora");
-args::ValueFlag<std::string> audioFolder(parser, "../../r2/sound", "Folder containing Miles audio files (mprj, mbnk, mstr).", { "folder" }, { "../../r2/sound" });
-args::ValueFlag<std::string> outputFolder(parser, "/miles_audio", "Folder to place the audio files in.", { 'o', "out" }, { "./miles_audio" });
-args::ValueFlag<std::string> exportLanguage(parser, "Language", "Language which you want to export\nIf not exist or empty,will choose the first found language.", { 'e', "export" });
-args::Flag listBankEvents(parser, "EVENTLIST", "List all event IDs and names contained in the Mile's bank.", { 'l', "list" });
-args::Flag muteSound(parser, "QUIET", "Mute audio while recording events", { 'm', "mute" });
-args::PositionalList<int> eventIDs(parser, "EVENT IDs", "Enter either one or two event IDs. Entering only one will cause that event to be recorded. Entering two event IDs will record every event between the two event IDs.");
-args::Group advancedGroup(parser, "ADVANCED");
+args::ArgumentParser parser("Miles 10 Sound Dumper 作者: Lyxica\n版本号: v1.0-beta5\n修复及汉化更新: zxcPandora");
+args::ValueFlag<std::string> audioFolder(parser, "../../r2/sound", "包含以下音频文件的文件夹 (*.mprj, *.mbnk, *.mstr).", { "folder" }, { "../../r2/sound" });
+args::ValueFlag<std::string> outputFolder(parser, "/miles_audio", "用于放置导出音频文件的文件夹，默认为软件同级目录的miles_audio文件夹。", { 'o', "out" }, { "./miles_audio" });
+args::ValueFlag<std::string> exportLanguage(parser, "Language", "你希望导出的音频语言（详见语言名称.txt）\n如果语言选项不存在或者为空，将默认为所能找到的第一个语言。", { 'e', "export" });
+args::Flag listBankEvents(parser, "EVENTLIST", "列出数据库中包含的所有音频名称及ID。", { 'l', "list" });
+args::Flag muteSound(parser, "QUIET", "录制音频时不播放声音。", { 'm', "mute" });
+args::PositionalList<int> eventIDs(parser, "EVENT IDs", "输入一个或两个音频ID。只输入一个只会录制该ID的音频。输入两个音频ID将录制这两个音频ID之间的每个音频。");
+args::Group advancedGroup(parser, "额外功能：");
 args::ValueFlag<int> noiseFloor(advancedGroup, "0x2000", "Adjust the noise floor when detecting silence. Any samples below this value will be considered silent.", { "noise" }, 0x2000);
-args::ValueFlag<int> beginningSilencePeriod(advancedGroup, "1250", "When beginning an event recording, the amount of milliseconds of silence to wait for audio before giving up.", { "start" }, 1250);
-args::ValueFlag<int> endingSilencePeriod(advancedGroup, "500", "After an event has started recording, the amount of milliseconds of silence to wait before stopping the recording.", { "end" }, 500);
-args::HelpFlag help(parser, "help", "Display this help menu", { 'h', "help" });
+args::ValueFlag<int> beginningSilencePeriod(advancedGroup, "1250", "开始录制音频时，停止之前的等待时间（毫秒）。", { "start" }, 1250);
+args::ValueFlag<int> endingSilencePeriod(advancedGroup, "500", "开始录制音频后，停止之前的等待时间（毫秒）。", { "end" }, 500);
+args::HelpFlag help(parser, "help", "显示该帮助菜单", { 'h', "help" });
 std::vector<int> queuedEvents;
 Project project;
 
@@ -58,13 +58,13 @@ __int64 hook_TRANSFER_MIXED_AUDIO_TO_SOUND_BUFFER(__int64* a1) {
 
 void WINAPI logM(int number, char* message)
 {
-	std::cout << "Message received: " << message << "\r\n";
+	std::cout << "系统日志: " << message << "\r\n";
 }
 
 void _Record(Project project) {
 	while (queuedEvents.size() > 0) {
 		recorder->Record(queuedEvents.back());
-		std::cout << "Recording " << recorder->GetName() << std::endl;
+		std::cout << "录制 " << recorder->GetName() << " 中" << std::endl;
 
 		MilesBankGetEventTemplateId(project.bank, queuedEvents.back(), (long long*)& out);
 		MilesQueueControllerValue(project.queue, "GameMusicVolume", 1);
@@ -95,7 +95,7 @@ void _Play(Project project) {
 		
 		while (true) 
 		{
-			std::cout << "Play Event ID: ";
+			std::cout << "播放音频ID: ";
 			std::cin >> input;
 			if (cstrIsDigits(input.c_str()))
 			{
@@ -103,7 +103,7 @@ void _Play(Project project) {
 				break;
 			}
 			else {
-				std::cout << "Invalid event ID. Expected number between 0 and " << events << std::endl;
+				std::cout << "无效音频ID. 应为0到 " << events << " 之间的数字" << std::endl;
 			}
 		}
 
@@ -112,11 +112,11 @@ void _Play(Project project) {
 			continue;
 		}
 		if (i >= events) {
-			std::cout << "Invalid event ID. Expected number between 0 and " << events << std::endl;
+			std::cout << "无效音频ID. 应为0到 " << events << " 之间的数字" << std::endl;
 			continue;
 		}
 
-		std::cout << "Playing " << MilesBankGetEventName(project.bank, i) << " (enter negative number to stop)" << std::endl;
+		std::cout << "正在播放 " << MilesBankGetEventName(project.bank, i) << " (输入负数来停止播放)" << std::endl;
 		MilesBankGetEventTemplateId(project.bank, i, (long long*)& out);
 		MilesQueueControllerValue(project.queue, "GameMusicVolume", 1);
 		MilesQueueControllerValue(project.queue, "DialogueVolume", 1);
@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 
 	if (!std::filesystem::exists(std::filesystem::path(args::get(audioFolder))))
 	{
-		std::cout << "Folder " << args::get(audioFolder) << " not found" << std::endl;
+		std::cout << "目录 " << args::get(audioFolder) << " 未找到" << std::endl;
 		return 1;
 	}
 
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
 	auto ids = args::get(eventIDs);
 	if (ids.size() > 2)
 	{
-		std::cout << "Two is the maximum number of event IDs that can be entered." << std::endl;
+		std::cout << "只能输入两个音频ID" << std::endl;
 	}
 
 	if (ids.size() > 0) 
